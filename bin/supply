@@ -1,0 +1,63 @@
+#!/usr/bin/env ruby
+
+require 'erb'
+require 'json'
+require 'uri'
+
+deps_dir = ARGV[2]
+deps_idx = ARGV[3]
+
+# TODO: port occupied -> crash
+# TODO: Detect health endpoint
+# TODO: Custom domain support
+
+puts "----- Central Authentication Buildpack -----"
+
+vcap_services = JSON.parse(ENV["VCAP_SERVICES"])
+
+memory = ENV["CAUTH_MEM"]  != nil ? ENV["CAUTH_MEM"] : 100
+log_level = ENV["CAUTH_LOG_LEVEL"]  != nil ? ENV["CAUTH_LOG_LEVEL"] : "warn"
+public_paths = ENV["CAUTH_PUBLIC_PATHS"]  != nil ? JSON.parse(ENV["CAUTH_PUBLIC_PATHS"]) : []
+port = ENV["CAUTH_PORT"] != nil ? ENV["CAUTH_PORT"] : 8000
+max_downstream_con =  ENV["CAUTH_MAX_DOWNSTREAM_CON"] != nil ? ENV["CAUTH_MAX_DOWNSTREAM_CON"] : 1000
+
+number_xsuaa_bindings = vcap_services["xsuaa"] == nil ? 0 : vcap_services["xsuaa"].size
+number_ias_bindings =  vcap_services["identity"] == nil ? 0 : vcap_services["identity"].size
+
+if number_xsuaa_bindings > 1
+    abort("Multiple xsuaa bindings are not supported, aborting")
+elsif number_ias_bindings > 1
+    abort("Multiple ias bindings are not supported, aborting")
+elsif number_xsuaa_bindings == 1 && number_ias_bindings == 1
+    abort("IAS and XSUAA bindings at the same time are not supported, aborting")
+elsif number_xsuaa_bindings == 1
+    template_name = "sidecar-xsuaa.yaml.erb"
+    xsuaa = vcap_services["xsuaa"][0]["credentials"]
+    xsuaa_host = URI.parse(xsuaa["url"]).host
+elsif number_ias_bindings == 1
+    template_name = "sidecar-ias.yaml.erb"
+    ias = vcap_services["identity"][0]["credentials"]
+    ias_host = URI.parse(ias["url"]).host
+else
+    template_name = "sidecar-noauth.yaml.erb"
+end
+
+puts "parameters: template: #{template_name}, memory: #{memory}, log level: #{log_level}, public routes: #{public_paths}, port: #{port}, max_downstream_con: #{max_downstream_con}"
+
+template = ERB.new(File.read(File.join(File.dirname(__FILE__),"../", template_name)))
+File.write(File.join(deps_dir, deps_idx, "sidecar.yaml"), template.result)
+
+puts File.read(File.join(deps_dir, deps_idx, "sidecar.yaml"))
+
+launch = %Q(---
+processes:
+- type: "sidecar-envoy"
+  command: "/etc/cf-assets/envoy/envoy -c /home/vcap/deps/#{deps_idx}/sidecar.yaml --log-level #{log_level} --base-id 1"
+  limits:
+    memory: #{memory}
+  platforms:
+    cloudfoundry:
+      sidecar_for: ["web"]
+)
+
+File.write(File.join(deps_dir, deps_idx, "launch.yml"), launch)

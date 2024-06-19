@@ -1,36 +1,46 @@
-# SAP-samples/repository-template
-This default template for SAP Samples repositories includes files for README, LICENSE, and .reuse/dep5. All repositories on github.com/SAP-samples will be created based on this template.
+# Central Authentication Buildpack
 
-# Containing Files
+This buildpack starts an envoy that acts as reverse proxy in front of the application that authenticates incoming requests by validating the presented token.
+For this it generates an envoy configuration based on the bound XSUAA/IAS instance.
+The envoy validates the issuer, signature, expire time and tenant data of the token.
 
-1. The LICENSE file:
-In most cases, the license for SAP sample projects is `Apache 2.0`.
+If no XSUAA/IAS instance is bound to the application, all requests are declined (beside requests to the paths configured via `CAUTH_PUBLIC_PATHS`). If multiple instances are bound the startup of the application will fail.
 
-2. The .reuse/dep5 file: 
-The [Reuse Tool](https://reuse.software/) must be used for your samples project. You can find the .reuse/dep5 in the project initial. Please replace the parts inside the single angle quotation marks < > by the specific information for your repository.
+## Usage
 
-3. The README.md file (this file):
-Please edit this file as it is the primary description file for your project. You can find some placeholder titles for sections below.
+1. Adapt the manifest file of your application to include the buildpack and place it before the final buildpack.
+2. Change your application to listen on port 8000. It can also be any other port beside `8080`, then setting `CAUTH_PORT` (see [configuration](#configuration)) is required.
 
-# [Title]
-<!-- Please include descriptive title -->
+<pre>
+applications:
+- name: example-app
+  memory: 256MB
+  buildpacks:
+    <b>- https://github.com/SAP-samples/managed-auth-envoy-buildpack</b>
+    - python_buildpack
+  command: gunicorn -b 0.0.0.0:<b>8000</b> -k gevent httpbin:app
+</pre>
 
-<!--- Register repository https://api.reuse.software/register, then add REUSE badge:
-[![REUSE status](https://api.reuse.software/badge/github.com/SAP-samples/REPO-NAME)](https://api.reuse.software/info/github.com/SAP-samples/REPO-NAME)
--->
+## Configuration
 
-## Description
-<!-- Please include SEO-friendly description -->
+Configuration of central authentication is done via environment variables:
 
-## Requirements
+| Name | Description |
+|------|-------------|
+|CAUTH_PUBLIC_PATHS| JSON array of paths that are public and do not require token for access, e.g. `["/health"]` |
+|CAUTH_PORT| Port of the application where envoy will forward the requests to. Default: `8000` |
+|CAUTH_MEM| Memory of the envoy in `MB`, default `100`|
+|CAUTH_LOG_LEVEL| Log level of the envoy, default `warn`|
+|CAUTH_MAX_DOWNSTREAM_CON| Max connections of envoy for downstream connections, default `1000`|
 
-## Download and Installation
+## Limitations
 
-## Known Issues
-<!-- You may simply state "No known issues. -->
+- If port 8080 is occupied, the application will keep crashing.
+- If your application uses http health check, the health endpoint needs to be configured in `CAUTH_PUBLIC_PATHS`
+- No custom issuer for IAS supported (only `https://*.accounts.ondemand.com`)
 
 ## How to obtain support
-[Create an issue](https://github.com/SAP-samples/<repository-name>/issues) in this repository if you find a bug or have questions about the content.
+[Create an issue](https://github.com/SAP-samples/managed-auth-envoy-buildpack/issues) in this repository if you find a bug or have questions about the content.
  
 For additional support, [ask a question in SAP Community](https://answers.sap.com/questions/ask.html).
 
