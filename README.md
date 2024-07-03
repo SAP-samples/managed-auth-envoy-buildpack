@@ -1,3 +1,5 @@
+[![REUSE status](https://api.reuse.software/badge/github.com/SAP-samples/managed-auth-envoy-buildpack)](https://api.reuse.software/info/github.com/SAP-samples/managed-auth-envoy-buildpack)
+
 # Central Authentication Buildpack
 
 This buildpack starts an envoy that acts as reverse proxy in front of the application that authenticates incoming requests by validating the presented token.
