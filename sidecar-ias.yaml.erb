@@ -26,6 +26,9 @@ static_resources:
                             app_tid-rbac:
                               "@type": type.googleapis.com/envoy.config.route.v3.FilterConfig
                               disabled: true
+                            azp-rbac:
+                              "@type": type.googleapis.com/envoy.config.route.v3.FilterConfig
+                              disabled: true
                         <% end %>
                         - match: { prefix: "/" }
                           route: { cluster: app }
@@ -58,7 +61,7 @@ static_resources:
                       rules:
                         action: ALLOW
                         policies:
-                          "zid":
+                          "app_tid":
                             permissions:
                               metadata:
                                 filter: envoy.filters.http.jwt_authn
@@ -68,6 +71,34 @@ static_resources:
                                 value:
                                   string_match:
                                     exact: <%= ias["app_tid"] %>
+                            principals:
+                              - any: true
+                  - name: azp-rbac
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC
+                      rules:
+                        action: ALLOW
+                        policies:
+                          "azp":
+                            permissions:
+                              - or_rules:
+                                  rules:
+                                    - metadata:
+                                        filter: envoy.filters.http.jwt_authn
+                                        path:
+                                          - key: jwt
+                                          - key: azp
+                                        value:
+                                          string_match:
+                                            exact: <%= ias["clientid"] %>
+                                    - metadata:
+                                        filter: envoy.filters.http.jwt_authn
+                                        invert: true
+                                        path:
+                                          - key: jwt
+                                          - key: azp
+                                        value:
+                                          present_match: true
                             principals:
                               - any: true
                   - name: envoy.filters.http.router

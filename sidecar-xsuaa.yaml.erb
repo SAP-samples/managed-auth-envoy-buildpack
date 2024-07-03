@@ -32,6 +32,12 @@ static_resources:
                             subdomain-rbac:
                               "@type": type.googleapis.com/envoy.config.route.v3.FilterConfig
                               disabled: true
+                            azp-rbac:
+                              "@type": type.googleapis.com/envoy.config.route.v3.FilterConfig
+                              disabled: true
+                            cid-rbac:
+                              "@type": type.googleapis.com/envoy.config.route.v3.FilterConfig
+                              disabled: true
                         <% end %>
                         - match: { prefix: "/" }
                           route: { cluster: app }
@@ -112,6 +118,42 @@ static_resources:
                                 value:
                                   string_match:
                                     exact: <%= xsuaa["identityzone"] %>
+                            principals:
+                              - any: true
+                  - name: cid-rbac
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC
+                      rules:
+                        action: ALLOW
+                        policies:
+                          "cid":
+                            permissions:
+                              metadata:
+                                filter: envoy.filters.http.jwt_authn
+                                path:
+                                  - key: jwt
+                                  - key: cid
+                                value:
+                                  string_match:
+                                    exact: <%= xsuaa["clientid"] %>
+                            principals:
+                              - any: true
+                  - name: azp-rbac
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC
+                      rules:
+                        action: ALLOW
+                        policies:
+                          "azp":
+                            permissions:
+                              metadata:
+                                filter: envoy.filters.http.jwt_authn
+                                path:
+                                  - key: jwt
+                                  - key: azp
+                                value:
+                                  string_match:
+                                    exact: <%= xsuaa["clientid"] %>
                             principals:
                               - any: true
                   - name: envoy.filters.http.router
