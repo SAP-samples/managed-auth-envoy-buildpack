@@ -7,10 +7,6 @@ require 'uri'
 deps_dir = ARGV[2]
 deps_idx = ARGV[3]
 
-# TODO: port occupied -> crash
-# TODO: Detect health endpoint
-# TODO: Custom domain support
-
 puts "----- Central Authentication Buildpack -----"
 
 vcap_services = JSON.parse(ENV["VCAP_SERVICES"])
