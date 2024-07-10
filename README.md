@@ -21,6 +21,10 @@ applications:
   command: gunicorn -b 0.0.0.0:<b>8000</b> -k gevent httpbin:app
 </pre>
 
+
+For CAP node applications the default port can be changed by setting the `PORT` environment variable. `export PORT=8000`.
+For spring boot applications the `server.port` property must be set in the application.properties file `server.port=8000`.
+
 ## Configuration
 
 Configuration of central authentication is done via environment variables:
