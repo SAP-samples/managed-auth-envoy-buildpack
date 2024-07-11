@@ -1,6 +1,6 @@
 [![REUSE status](https://api.reuse.software/badge/github.com/SAP-samples/managed-auth-envoy-buildpack)](https://api.reuse.software/info/github.com/SAP-samples/managed-auth-envoy-buildpack)
 
-# Central Authentication Buildpack
+# Managed Authentication Buildpack
 
 This buildpack starts an envoy that acts as reverse proxy in front of the application that authenticates incoming requests by validating the presented token.
 For this it generates an envoy configuration based on the bound XSUAA/IAS instance.
@@ -29,7 +29,7 @@ For spring boot applications the `server.port` property must be set in the appli
 
 ## Configuration
 
-Configuration of central authentication is done via environment variables:
+Configuration of managed authentication is done via environment variables:
 
 | Name | Description |
 |------|-------------|
